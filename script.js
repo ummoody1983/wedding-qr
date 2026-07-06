@@ -1,26 +1,64 @@
-// Wedding QR Pro V2
-console.log("Wedding QR Pro جاهز");
+console.log("Wedding QR Pro V2");
+
+function jsonp(url) {
+  return new Promise((resolve, reject) => {
+    const callback = "cb_" + Date.now();
+    const script = document.createElement("script");
+
+    window[callback] = (data) => {
+      resolve(data);
+      delete window[callback];
+      script.remove();
+    };
+
+    script.onerror = reject;
+    script.src = url + (url.includes("?") ? "&" : "?") + "callback=" + callback;
+    document.body.appendChild(script);
+  });
+}
+
+function showMessage(text, type) {
+  const msg = document.getElementById("message");
+  msg.className = type === "success" ? "success" : "error";
+  msg.innerHTML = text;
+}
+
+async function loadStats() {
+  const stats = await jsonp(API_URL + "?action=stats");
+  document.getElementById("stats").innerHTML =
+    "👥 الحضور<br>" + stats.attended + " / " + stats.total;
+}
+
+async function checkCode(code) {
+  if (!code) {
+    showMessage("الرجاء إدخال رقم الدعوة", "error");
+    return;
+  }
+
+  const result = await jsonp(
+    API_URL + "?action=check&code=" + encodeURIComponent(code)
+  );
+
+  showMessage(result.message, result.status === "success" ? "success" : "error");
+  document.getElementById("manualCode").value = "";
+  loadStats();
+}
 
 document.addEventListener("DOMContentLoaded", () => {
+  loadStats();
 
-    const scanBtn = document.getElementById("scanBtn");
-    const checkBtn = document.getElementById("checkBtn");
+  document.getElementById("checkBtn").addEventListener("click", () => {
+    const code = document.getElementById("manualCode").value.trim();
+    checkCode(code);
+  });
 
-    scanBtn.addEventListener("click", () => {
-        alert("سيتم تشغيل الكاميرا في الخطوة القادمة 📷");
-    });
+  document.getElementById("manualCode").addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      checkCode(e.target.value.trim());
+    }
+  });
 
-    checkBtn.addEventListener("click", () => {
-
-        const code = document.getElementById("manualCode").value.trim();
-
-        if(code===""){
-            alert("الرجاء إدخال رقم الدعوة");
-            return;
-        }
-
-        alert("رقم الدعوة: " + code);
-
-    });
-
+  document.getElementById("scanBtn").addEventListener("click", () => {
+    alert("الربط نجح. سنضيف الكاميرا في الخطوة التالية 📷");
+  });
 });
